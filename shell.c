@@ -4,6 +4,8 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 
+#include "user_details.h"
+
 #define MAX_TOKENS 100
 #define MAX_TOKEN_LEN 100
 
@@ -76,6 +78,12 @@ int main()
     {
         char tokens[MAX_TOKENS][MAX_TOKEN_LEN];
         int tokenCount = 0;
+
+        char* current_cwd = get_cwd();
+        char* computer = get_computer_name();
+        char* user = current_user();
+        printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer );
+        printf(BOLD_BLUE"%s" RESET_COLOUR, current_cwd);
 
         printf(GREEN "$ " RESET_COLOUR);
 
