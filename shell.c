@@ -2,6 +2,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 
 #define MAX_TOKENS 100
 #define MAX_TOKEN_LEN 100
@@ -22,6 +23,7 @@ typedef struct Terminal
     char history[MAX_TOKENS][MAX_TOKEN_LEN];
     void (*addHistory)(struct Terminal *terminal, const char input[]);
     void (*listDirectory)(const char *path);
+    void (*clearScreen)();
 } Terminal;
 
 void add_to_history(struct Terminal *terminal, const char input[])
@@ -62,10 +64,15 @@ void list_directory(const char *path)
     closedir(dir);
 }
 
+void clear_screen()
+{
+    printf("\033[H\033[J");
+}
+
 int main()
 {
     char input[1000];
-    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory};
+    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen};
 
     while (1)
     {
@@ -100,22 +107,25 @@ int main()
         {
             break;
         }
-        if (strcmp(tokens[0], "cd") == 0)
+        else if (strcmp(tokens[0], "cd") == 0)
         {
             printf("So far so good...\n");
         }
-
-        if (strcmp(tokens[0], "history") == 0)
+        else if (strcmp(tokens[0], "history") == 0)
         {
             for (int i = 0; i < countHistory; i++)
             {
                 printf("%d: %s\n", i, terminal.history[i]);
             }
         }
-        if (strcmp(tokens[0], "ls") == 0)
+        else if (strcmp(tokens[0], "ls") == 0)
         {
             const char *path = tokenCount > 1 ? tokens[1] : ".";
             terminal.listDirectory(path);
+        }
+        else if (strcmp(tokens[0], "clear") == 0)
+        {
+            terminal.clearScreen();
         }
     }
     return 0;
