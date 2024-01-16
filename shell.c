@@ -1,11 +1,17 @@
 #include <stdio.h>
 #include <string.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 #define MAX_TOKENS 100
 #define MAX_TOKEN_LEN 100
 
+#define GREEN_BCKGROUND "\e[42m"
+#define BOLD_BLUE "\e[1;34m"
+#define BOLD_GREEN "\e[1;32m"
 #define GREEN "\033[32m"
 #define RESET_COLOUR "\033[0m"
+#define RESET_BCKGROUND "\e[0m"
 
 static int countHistory = 0;
 
@@ -15,6 +21,7 @@ typedef struct Terminal
 {
     char history[MAX_TOKENS][MAX_TOKEN_LEN];
     void (*addHistory)(struct Terminal *terminal, const char input[]);
+    void (*listDirectory)(const char *path);
 } Terminal;
 
 void add_to_history(struct Terminal *terminal, const char input[])
@@ -26,11 +33,39 @@ void add_to_history(struct Terminal *terminal, const char input[])
         countHistory++;
     }
 }
+void list_directory(const char *path)
+{
+    struct dirent *entry;
+    DIR *dir = opendir(path);
+
+    if (dir == NULL)
+    {
+        printf("Error: Unable to open directory.\n");
+        return;
+    }
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        struct stat statbuf;
+        stat(entry->d_name, &statbuf);
+        // S_ISDIR -> folosit sa nedam seama daca un director
+        // primeste cv de tip mode_t (vezi lab 2)
+        if (S_ISDIR(statbuf.st_mode))
+        {
+            printf(GREEN_BCKGROUND "%s\n" RESET_BCKGROUND, entry->d_name);
+        }
+        else
+        {
+            printf(BOLD_BLUE "%s\n" RESET_COLOUR, entry->d_name);
+        }
+    }
+    closedir(dir);
+}
 
 int main()
 {
     char input[1000];
-    Terminal terminal = {.addHistory = add_to_history};
+    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory};
 
     while (1)
     {
@@ -76,6 +111,11 @@ int main()
             {
                 printf("%d: %s\n", i, terminal.history[i]);
             }
+        }
+        if (strcmp(tokens[0], "ls") == 0)
+        {
+            const char *path = tokenCount > 1 ? tokens[1] : ".";
+            terminal.listDirectory(path);
         }
     }
     return 0;
