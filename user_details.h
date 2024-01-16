@@ -13,16 +13,18 @@
 #include <pwd.h>
 #include <stddef.h>
 
-char* get_cwd(){
-     char *cwd = NULL;
-     long size = 1024;
-     cwd = (char *)malloc(size);
-     getcwd(cwd, 1024);
-     return cwd;
+char *get_cwd()
+{
+    char *cwd = NULL;
+    long size = 1024;
+    cwd = (char *)malloc(size);
+    getcwd(cwd, 1024);
+    return cwd;
 }
 
-char* get_computer_name(){
-struct addrinfo hints, *info, *p;
+char *get_computer_name()
+{
+    struct addrinfo hints, *info, *p;
     int gai_result;
 
     char hostname[1024];
@@ -50,34 +52,36 @@ struct addrinfo hints, *info, *p;
     //     struct  addrinfo *ai_next; /* this struct can form a linked list */
     // };
 
-    if ((gai_result = getaddrinfo(hostname, "http", &hints, &info)) != 0) {
+    if ((gai_result = getaddrinfo(hostname, "http", &hints, &info)) != 0)
+    {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(gai_result));
         exit(1);
     }
-    char* local_name = info->ai_canonname;
+    char *local_name = info->ai_canonname;
 
-    //scoate localdomain din el
-    char *substring = ".localdomain";
+    // scoate localdomain din el
+    // char *substring = ".localdomain";
 
-    // Find the position of the substring
-    char *position = strstr(local_name, substring);
-    strcpy(position, position + strlen(substring));
-
+    // // Find the position of the substring
+    // char *position = strstr(local_name, substring);
+    // strcpy(position, position + strlen(substring));
 
     return local_name;
     freeaddrinfo(info);
 }
 
-//The getpwuid() function searches the user database for an entry with a matching uid.
-//The geteuid() function returns the effective user ID of the calling process.
-char* current_user(){
+// The getpwuid() function searches the user database for an entry with a matching uid.
+// The geteuid() function returns the effective user ID of the calling process.
+char *current_user()
+{
     struct passwd *pw;
     char *user = NULL;
 
     pw = getpwuid(geteuid());
     if (pw)
         user = pw->pw_name;
-    else if ((user = getenv("USER")) == NULL) {
+    else if ((user = getenv("USER")) == NULL)
+    {
         fprintf(stderr, "I don't know!\n");
         return "nothing";
     }
