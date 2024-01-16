@@ -6,6 +6,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
+#include <pwd.h>
 char *my_getcwd(char *buffer, size_t size)
 {
     ino_t current_inode;
