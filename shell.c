@@ -92,7 +92,7 @@ int main()
         input[strcspn(input, "\n")] = 0;
 
         terminal.addHistory(&terminal, input);
-
+        //citirea datelor de la tastatura
         char *token = strtok(input, " ");
         while (token != NULL)
         {
@@ -108,7 +108,7 @@ int main()
                 break;
             }
         }
-
+        //verficarea cu fiecare comanda implementata
         if (strcmp(tokens[0], "exit") == 0)
         {
             break;
@@ -133,6 +133,25 @@ int main()
         {
             terminal.clearScreen();
         }
+        
+        //verific daca este o functie dintr-un package care il are userul, daca de apelez acea functie
+        char package_command[512];
+        snprintf(package_command, sizeof(package_command), "command -v %s >/dev/null 2>&1", tokens[0]);
+        if (system(package_command) == 0) {
+
+            // Build the package_command with parameters
+            snprintf(package_command, sizeof(package_command),"%s", tokens[0]);
+
+            // Concatenate Git package_command parameters
+            for (int i = 1; i < tokenCount; ++i) {
+                strncat(package_command, " ", sizeof(package_command) - strlen(package_command) - 1);
+                strncat(package_command, tokens[i], sizeof(package_command) - strlen(package_command) - 1);
+            }
+
+            // Apelam comanda
+            system(package_command);
+        }
+
     }
     return 0;
 }
