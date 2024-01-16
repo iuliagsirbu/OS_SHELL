@@ -16,8 +16,6 @@
 
 static int countHistory = 0;
 
-// void add_to_history(struct Terminal *terminal, const char input[]);
-
 typedef struct Terminal
 {
     char history[MAX_TOKENS][MAX_TOKEN_LEN];
