@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #include "user_details.h"
-
+#include <unistd.h>
 #define MAX_TOKENS 100
 #define MAX_TOKEN_LEN 100
 
@@ -67,6 +67,27 @@ void list_directory(const char *path)
 void clear_screen()
 {
     printf("\033[H\033[J");
+}
+
+//folosim pipe
+int isPackageAccessible(const char *command) {
+    char check_command[100];
+    snprintf(check_command, sizeof(check_command), "command -v %s >/dev/null 2>&1", command);
+
+    FILE *fp = popen(check_command, "r");
+    if (fp == NULL) {
+        return 0;
+    }
+
+    int result = pclose(fp);
+
+    // pclose returns -1 in case of an error
+    if (result == -1) {
+        return 0;
+    }
+
+    // Check if the command is accessible
+    return (result == 0);
 }
 
 int main()
@@ -133,12 +154,11 @@ int main()
         {
             terminal.clearScreen();
         }
-        
-        //verific daca este o functie dintr-un package care il are userul, daca de apelez acea functie
-        char package_command[512];
-        snprintf(package_command, sizeof(package_command), "command -v %s >/dev/null 2>&1", tokens[0]);
-        if (system(package_command) == 0) {
-
+        //asta trb pusa la sfarsit doarece poate accesa si touch, mkdir, cam orice comanda linux
+        //deci asta este doar daca am ratat noi alte comenzi, altfel merge tot
+        else if (isPackageAccessible(tokens[0])) { //verific daca este o functie dintr-un package care il are userul, daca de apelez acea functie
+            char package_command[512];
+            snprintf(package_command, sizeof(package_command), "command -v %s >/dev/null 2>&1", tokens[0]);
             // Build the package_command with parameters
             snprintf(package_command, sizeof(package_command),"%s", tokens[0]);
 
