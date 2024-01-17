@@ -1,14 +1,19 @@
+/* BUILT-IN HEADERS */
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <stdlib.h>
-
-#include "user_details.h"
 #include <unistd.h>
+
+/* CUSTOM HEADERS */
+#include "user_details.h"
+
+/* CONSTANTS */
 #define MAX_TOKENS 100
 #define MAX_TOKEN_LEN 100
 
+/* ANSI COLOR CODES */
 #define GREEN_BCKGROUND "\e[42m"
 #define BOLD_BLUE "\e[1;34m"
 #define BOLD_GREEN "\e[1;32m"
@@ -50,7 +55,7 @@ void list_directory(const char *path)
     {
         struct stat statbuf;
         stat(entry->d_name, &statbuf);
-        // S_ISDIR -> folosit sa nedam seama daca un director
+        // S_ISDIR -> folosit ca sa ne dam seama daca un director
         // primeste cv de tip mode_t (vezi lab 2)
         if (S_ISDIR(statbuf.st_mode))
         {
@@ -69,20 +74,23 @@ void clear_screen()
     printf("\033[H\033[J");
 }
 
-//folosim pipe
-int isPackageAccessible(const char *command) {
+// folosim pipe
+int isPackageAccessible(const char *command)
+{
     char check_command[100];
     snprintf(check_command, sizeof(check_command), "command -v %s >/dev/null 2>&1", command);
 
     FILE *fp = popen(check_command, "r");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         return 0;
     }
 
     int result = pclose(fp);
 
     // pclose returns -1 in case of an error
-    if (result == -1) {
+    if (result == -1)
+    {
         return 0;
     }
 
@@ -100,11 +108,11 @@ int main()
         char tokens[MAX_TOKENS][MAX_TOKEN_LEN];
         int tokenCount = 0;
 
-        char* current_cwd = get_cwd();
-        char* computer = get_computer_name();
-        char* user = current_user();
-        printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer );
-        printf(BOLD_BLUE"%s" RESET_COLOUR, current_cwd);
+        char *current_cwd = get_cwd();
+        char *computer = get_computer_name();
+        char *user = current_user();
+        printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer);
+        printf(BOLD_BLUE "%s" RESET_COLOUR, current_cwd);
 
         printf(GREEN "$ " RESET_COLOUR);
 
@@ -113,7 +121,7 @@ int main()
         input[strcspn(input, "\n")] = 0;
 
         terminal.addHistory(&terminal, input);
-        //citirea datelor de la tastatura
+        // citirea datelor de la tastatura
         char *token = strtok(input, " ");
         while (token != NULL)
         {
@@ -129,7 +137,7 @@ int main()
                 break;
             }
         }
-        //verficarea cu fiecare comanda implementata
+        // verficarea cu fiecare comanda implementata
         if (strcmp(tokens[0], "exit") == 0)
         {
             break;
@@ -154,16 +162,18 @@ int main()
         {
             terminal.clearScreen();
         }
-        //asta trb pusa la sfarsit doarece poate accesa si touch, mkdir, cam orice comanda linux
-        //deci asta este doar daca am ratat noi alte comenzi, altfel merge tot
-        else if (isPackageAccessible(tokens[0])) { //verific daca este o functie dintr-un package care il are userul, daca de apelez acea functie
+        // asta trb pusa la sfarsit doarece poate accesa si touch, mkdir, cam orice comanda linux
+        // deci asta este doar daca am ratat noi alte comenzi, altfel merge tot
+        else if (isPackageAccessible(tokens[0]))
+        { // verific daca este o functie dintr-un package pe care il are userul, daca da apelez acea functie
             char package_command[512];
             snprintf(package_command, sizeof(package_command), "command -v %s >/dev/null 2>&1", tokens[0]);
             // Build the package_command with parameters
-            snprintf(package_command, sizeof(package_command),"%s", tokens[0]);
+            snprintf(package_command, sizeof(package_command), "%s", tokens[0]);
 
             // Concatenate Git package_command parameters
-            for (int i = 1; i < tokenCount; ++i) {
+            for (int i = 1; i < tokenCount; ++i)
+            {
                 strncat(package_command, " ", sizeof(package_command) - strlen(package_command) - 1);
                 strncat(package_command, tokens[i], sizeof(package_command) - strlen(package_command) - 1);
             }
@@ -171,7 +181,6 @@ int main()
             // Apelam comanda
             system(package_command);
         }
-
     }
     return 0;
 }
