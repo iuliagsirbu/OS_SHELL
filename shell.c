@@ -25,9 +25,9 @@
 static int countHistory = 0;
 
 /* CUSTOM HEADERS */
-#include "user_details.h"
-#include "terminal.h"
-#include "verify_each_character.h"
+#include "user_details.h" // header pentru detalii despre utilizator
+#include "terminal.h" // header pentru functionalitati specifice terminalului
+#include "verify_each_character.h" // header pentru verificarea fiecarui caracter
 
 /* TERMIOS */
 void disable_raw_mode()
@@ -41,13 +41,14 @@ void disable_raw_mode()
     */
 }
 
+// activam modul raw
 void enable_raw_mode()
 {
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    atexit(disable_raw_mode);
+    tcgetattr(STDIN_FILENO, &orig_termios); // obtinem atributele terminalului si la iesirea din program dam disable la raw mode
+    atexit(disable_raw_mode); 
 
-    struct termios raw = orig_termios;
-    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
+    struct termios raw = orig_termios; // copiem atributele terminalului in raw
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG); // modificam atributele terminalului 
     /*
     raw struct modifies certain flags:
         - disables echoing of input characters
@@ -59,8 +60,10 @@ void enable_raw_mode()
 
 int main()
 {
-    char input[1000];
-    int historyIndex = countHistory - 1;
+    char input[1000]; 
+    int historyIndex = countHistory - 1; 
+
+    // structura pentru functionalitatile specifice terminalului (istoric, listare directoare, curatare ecran, verificare fiecare caracter)
     Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen, .verifyCharacters = verify_each_character};
     enable_raw_mode();
     while (1)
@@ -76,7 +79,7 @@ int main()
 
         printf(GREEN "$ " RESET_COLOUR);
 
-        int inputIndex = 0;
+        int inputIndex = 0; 
         memset(input, 0, sizeof(input)); // Clear the buffer
 
         // continous input that verifies for each character, arrow keys, and tab
@@ -84,6 +87,8 @@ int main()
         
         //preprocess the data input
         char *token = strtok(input, " ");
+
+        // impartim datele de intrare in token-uri
         while (token != NULL)
         {
             strncpy(tokens[tokenCount], token, MAX_TOKEN_LEN);
@@ -110,7 +115,10 @@ int main()
                 printf("Cd usage : cd <destination>\n");
             }
             else{
-                if(chdir(tokens[1]) != 0){printf("Cannot go to: %s\n", tokens[1]);}
+                if(chdir(tokens[1]) != 0) // schimbam directorul de lucru curent
+                {
+                    printf("Cannot go to: %s\n", tokens[1]); 
+                }
             }
             
         }
@@ -118,12 +126,12 @@ int main()
         {
             for (int i = 0; i < countHistory; i++)
             {
-                printf("%d: %s\n", i, terminal.history[i]);
+                printf("%d: %s\n", i, terminal.history[i]); // afisam istoricul comenzilor
             }
         }
         else if (strcmp(tokens[0], "ls") == 0)
         {
-            const char *path = tokenCount > 1 ? tokens[1] : ".";
+            const char *path = tokenCount > 1 ? tokens[1] : "."; // obtinem calea din token-uri; daca nu exista, utilizam directorul curent
             terminal.listDirectory(path);
         }
         else if (strcmp(tokens[0], "clear") == 0)
@@ -143,7 +151,7 @@ int main()
             for (int i = 1; i < tokenCount; ++i)
             {
                 strncat(package_command, " ", sizeof(package_command) - strlen(package_command) - 1);
-                strncat(package_command, tokens[i], sizeof(package_command) - strlen(package_command) - 1);
+                strncat(package_command, tokens[i], sizeof(package_command) - strlen(package_command) - 1); // concatenam parametrii
             }
 
             // Apelam comanda
