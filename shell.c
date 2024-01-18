@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
+#include <fcntl.h>
 
 /* CONSTANTS */
 #define MAX_TOKENS 100
@@ -62,7 +65,7 @@ int main()
     int historyIndex = countHistory - 1;
 
     // structura pentru functionalitatile specifice terminalului (istoric, listare directoare, curatare ecran, verificare fiecare caracter)
-    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen, .verifyCharacters = verify_each_character};
+    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen, .verifyCharacters = verify_each_character, .commandRedirection = command_redirection};
     enable_raw_mode();
     while (1)
     {
@@ -101,9 +104,13 @@ int main()
                 break;
             }
         }
+        if (strcmp(tokens[1], ">") == 0)
+        {
+            terminal.commandRedirection(tokens[0], tokens[2]);
+        }
 
         // verficarea cu fiecare comanda implementata
-        if (strcmp(tokens[0], "exit") == 0)
+        else if (strcmp(tokens[0], "exit") == 0)
         {
             break;
         }
@@ -136,6 +143,27 @@ int main()
         else if (strcmp(tokens[0], "clear") == 0)
         {
             terminal.clearScreen();
+        }
+        else if (strcmp(tokens[0], "cat") == 0)
+        {
+            if (tokens[1] == NULL)
+            {
+                printf("Usage: cat <filename>\n");
+                continue;
+            }
+            char *fromFile = tokens[1];
+            int sourceFile = open(fromFile, O_RDONLY);
+
+            struct stat st;
+            stat(fromFile, &st);
+
+            int sourceSize = st.st_size;
+            char *buffer = malloc(sourceSize);
+            int bytesRead = read(sourceFile, buffer, sourceSize);
+            write(STDOUT_FILENO, buffer, bytesRead);
+
+            free(buffer);
+            close(sourceFile);
         }
         // asta trb pusa la sfarsit doarece poate accesa si touch, mkdir, cam orice comanda linux
         // deci asta este doar daca am ratat noi alte comenzi, altfel merge tot
