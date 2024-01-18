@@ -7,8 +7,6 @@
 #include <unistd.h>
 #include <termios.h>
 
-
-
 /* CONSTANTS */
 #define MAX_TOKENS 100
 #define MAX_TOKEN_LEN 100
@@ -25,8 +23,8 @@
 static int countHistory = 0;
 
 /* CUSTOM HEADERS */
-#include "user_details.h" // header pentru detalii despre utilizator
-#include "terminal.h" // header pentru functionalitati specifice terminalului
+#include "user_details.h"          // header pentru detalii despre utilizator
+#include "terminal.h"              // header pentru functionalitati specifice terminalului
 #include "verify_each_character.h" // header pentru verificarea fiecarui caracter
 
 /* TERMIOS */
@@ -45,10 +43,10 @@ void disable_raw_mode()
 void enable_raw_mode()
 {
     tcgetattr(STDIN_FILENO, &orig_termios); // obtinem atributele terminalului si la iesirea din program dam disable la raw mode
-    atexit(disable_raw_mode); 
+    atexit(disable_raw_mode);
 
-    struct termios raw = orig_termios; // copiem atributele terminalului in raw
-    raw.c_lflag &= ~(ECHO | ICANON | ISIG); // modificam atributele terminalului 
+    struct termios raw = orig_termios;      // copiem atributele terminalului in raw
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG); // modificam atributele terminalului
     /*
     raw struct modifies certain flags:
         - disables echoing of input characters
@@ -60,8 +58,8 @@ void enable_raw_mode()
 
 int main()
 {
-    char input[1000]; 
-    int historyIndex = countHistory - 1; 
+    char input[1000];
+    int historyIndex = countHistory - 1;
 
     // structura pentru functionalitatile specifice terminalului (istoric, listare directoare, curatare ecran, verificare fiecare caracter)
     Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen, .verifyCharacters = verify_each_character};
@@ -79,13 +77,13 @@ int main()
 
         printf(GREEN "$ " RESET_COLOUR);
 
-        int inputIndex = 0; 
+        int inputIndex = 0;
         memset(input, 0, sizeof(input)); // Clear the buffer
 
         // continous input that verifies for each character, arrow keys, and tab
-        terminal.verifyCharacters(&terminal,input, &inputIndex, &historyIndex);
-        
-        //preprocess the data input
+        terminal.verifyCharacters(&terminal, input, &inputIndex, &historyIndex);
+
+        // preprocess the data input
         char *token = strtok(input, " ");
 
         // impartim datele de intrare in token-uri
@@ -103,24 +101,25 @@ int main()
                 break;
             }
         }
-        
+
         // verficarea cu fiecare comanda implementata
         if (strcmp(tokens[0], "exit") == 0)
         {
             break;
         }
-        else if (strcmp(tokens[0], "cd") == 0 )
+        else if (strcmp(tokens[0], "cd") == 0)
         {
-            if(tokenCount != 2){
+            if (tokenCount != 2)
+            {
                 printf("Cd usage : cd <destination>\n");
             }
-            else{
-                if(chdir(tokens[1]) != 0) // schimbam directorul de lucru curent
+            else
+            {
+                if (chdir(tokens[1]) != 0) // schimbam directorul de lucru curent
                 {
-                    printf("Cannot go to: %s\n", tokens[1]); 
+                    printf("Cannot go to: %s\n", tokens[1]);
                 }
             }
-            
         }
         else if (strcmp(tokens[0], "history") == 0)
         {
