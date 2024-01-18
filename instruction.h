@@ -1,4 +1,4 @@
-int do_an_instruction(struct Terminal* terminal, char* input){
+int doAnInstruction(struct Terminal* terminal, char* input){
     char tokens[MAX_TOKENS][MAX_TOKEN_LEN];
     int tokenCount = 0;
 

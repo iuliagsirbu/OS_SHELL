@@ -71,35 +71,24 @@ int main()
         .clearScreen = clear_screen,
         .verifyCharacters = verify_each_character,
         .commandRedirection = command_redirection,
-        .do_an_instruction = do_an_instruction
+        .doAnInstruction = doAnInstruction,
+        .printUser = printUser
     };
     enable_raw_mode();
     while (1)
     {
-        char tokens[MAX_TOKENS][MAX_TOKEN_LEN];
-        int tokenCount = 0;
-
-        char *current_cwd = get_cwd();
-        char *computer = get_computer_name();
-        char *user = current_user();
-        printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer);
-        printf(BOLD_BLUE "%s" RESET_COLOUR, current_cwd);
-
-        printf(GREEN "$ " RESET_COLOUR);
-
+        terminal.printUser();
+        
         int inputIndex = 0;
         memset(input, 0, sizeof(input)); // Clear the buffer
 
         // continous input that verifies for each character, arrow keys, and tab
         terminal.verifyCharacters(&terminal, input, &inputIndex, &historyIndex);
 
-       
-
-        int result = terminal.do_an_instruction(&terminal, input);
-        if(result == -1){break;}
-        if(result == 1){printf("cannot find the command\n");}
-
+        int result = terminal.doAnInstruction(&terminal, input);
         
+        if(result == -1){break;}
+        if(result == 1){printf("cannot find the command\n");} 
     }
     disable_raw_mode();
     return 0;

@@ -91,3 +91,12 @@ char *current_user()
     }
     return user;
 }
+
+void printUser(){
+    char *current_cwd = get_cwd();
+    char *computer = get_computer_name();
+    char *user = current_user();
+    printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer);
+    printf(BOLD_BLUE "%s" RESET_COLOUR, current_cwd);
+    printf(GREEN "$ " RESET_COLOUR);
+}

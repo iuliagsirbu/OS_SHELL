@@ -10,7 +10,8 @@ typedef struct Terminal
     void (*clearScreen)();
     void (*verifyCharacters)(struct Terminal *terminal, char *input, int *inputIndex, int *historyIndex);
     void (*commandRedirection)(char *command, char *file);
-    int (*do_an_instruction)(struct Terminal *terminal, char* input);
+    int (*doAnInstruction)(struct Terminal *terminal, char* input);
+    void (*printUser)();
 } Terminal;
 
 /* FUNCTIONS */
