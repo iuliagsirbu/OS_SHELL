@@ -8,10 +8,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
-#include <fcntl.h>
-
-/* CUSTOM HEADERS */
-#include "user_details.h"
 
 /* CONSTANTS */
 #define MAX_TOKENS 100
@@ -28,145 +24,10 @@
 
 static int countHistory = 0;
 
-/* STRUCTS */
-struct termios orig_termios; /* holds the original terminal settings */
-typedef struct Terminal
-{
-    char history[MAX_TOKENS][MAX_TOKEN_LEN];
-    void (*addHistory)(struct Terminal *terminal, const char input[]);
-    void (*listDirectory)(const char *path);
-    void (*clearScreen)();
-    void (*commandRedirection)(char *command, char *file);
-} Terminal;
-
-/* FUNCTIONS */
-
-/* TERMINAL */
-void add_to_history(struct Terminal *terminal, const char input[])
-{
-    if (countHistory < MAX_TOKENS)
-    {
-        strncpy(terminal->history[countHistory], input, MAX_TOKEN_LEN - 1);
-        terminal->history[countHistory][MAX_TOKEN_LEN - 1] = '\0'; // Ensure null-termination
-        countHistory++;
-    }
-}
-void list_directory(const char *path)
-{
-    struct dirent *entry;
-    DIR *dir = opendir(path);
-
-    if (dir == NULL)
-    {
-        printf("Error: Unable to open directory.\n");
-        return;
-    }
-
-    while ((entry = readdir(dir)) != NULL)
-    {
-        struct stat statbuf;
-        stat(entry->d_name, &statbuf);
-        // S_ISDIR -> folosit ca sa ne dam seama daca un director
-        // primeste cv de tip mode_t (vezi lab 2)
-        if (S_ISDIR(statbuf.st_mode))
-        {
-            printf(GREEN_UNDERLINE "%s\n" RESET_BCKGROUND, entry->d_name);
-        }
-        else
-        {
-            printf(BOLD_BLUE "%s\n" RESET_COLOUR, entry->d_name);
-        }
-    }
-    closedir(dir);
-}
-
-void clear_screen()
-{
-    printf("\033[H\033[J");
-}
-
-// folosim pipe
-int isPackageAccessible(const char *command)
-{
-    char check_command[100];
-    snprintf(check_command, sizeof(check_command), "command -v %s >/dev/null 2>&1", command);
-
-    FILE *fp = popen(check_command, "r");
-    if (fp == NULL)
-    {
-        return 0;
-    }
-
-    int result = pclose(fp);
-
-    // pclose returns -1 in case of an error
-    if (result == -1)
-    {
-        return 0;
-    }
-
-    // Check if the command is accessible
-    return (result == 0);
-}
-void handle_tab_press(char *partial_path, char *input)
-{
-
-    // Add your tab completion logic here
-    DIR *dir;
-    struct dirent *entry;
-
-    if ((dir = opendir(".")) != NULL)
-    {
-        while ((entry = readdir(dir)) != NULL)
-        {
-            if (strncmp(entry->d_name, partial_path, strlen(partial_path)) == 0)
-            {
-                char temp[1000] = "";
-                strcpy(temp, entry->d_name + strlen(partial_path));
-                strcat(input, temp);
-                printf("%s", temp);
-            }
-        }
-        closedir(dir);
-    }
-    else
-    {
-        perror("opendir");
-    }
-}
-
-void command_redirection(char *command, char *file)
-{
-    pid_t pid = fork();
-    if (pid == 0) // Child process
-    {
-        if (file != NULL)
-        {
-            int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (fd < 0)
-            {
-                perror("open");
-                exit(EXIT_FAILURE);
-            }
-            dup2(fd, STDOUT_FILENO);
-            close(fd);
-        }
-
-        char *argv[] = {command, NULL};
-        execvp(command, argv);
-        perror("execvp");
-        exit(EXIT_FAILURE);
-    }
-    else if (pid > 0) // Parent process
-    {
-        wait(NULL); // Waiting for the child...
-    }
-    else
-    {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
-}
+/* CUSTOM HEADERS */
+#include "user_details.h"          // header pentru detalii despre utilizator
+#include "terminal.h"              // header pentru functionalitati specifice terminalului
+#include "verify_each_character.h" // header pentru verificarea fiecarui caracter
 
 /* TERMIOS */
 void disable_raw_mode()
@@ -180,13 +41,14 @@ void disable_raw_mode()
     */
 }
 
+// activam modul raw
 void enable_raw_mode()
 {
-    tcgetattr(STDIN_FILENO, &orig_termios);
+    tcgetattr(STDIN_FILENO, &orig_termios); // obtinem atributele terminalului si la iesirea din program dam disable la raw mode
     atexit(disable_raw_mode);
 
-    struct termios raw = orig_termios;
-    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
+    struct termios raw = orig_termios;      // copiem atributele terminalului in raw
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG); // modificam atributele terminalului
     /*
     raw struct modifies certain flags:
         - disables echoing of input characters
@@ -200,7 +62,9 @@ int main()
 {
     char input[1000];
     int historyIndex = countHistory - 1;
-    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen, .commandRedirection = command_redirection};
+
+    // structura pentru functionalitatile specifice terminalului (istoric, listare directoare, curatare ecran, verificare fiecare caracter)
+    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen, .verifyCharacters = verify_each_character};
     enable_raw_mode();
     while (1)
     {
@@ -217,117 +81,14 @@ int main()
 
         int inputIndex = 0;
         memset(input, 0, sizeof(input)); // Clear the buffer
-        // continous input
-        while (1)
-        {
-            int c = getchar();
 
-            // Detect Enter key or end of file
-            if (c == '\n' || c == EOF)
-            {
-                input[inputIndex] = '\0';
-                printf("\n");
-                if (inputIndex > 0)
-                {
-                    terminal.addHistory(&terminal, input);
-                    historyIndex = countHistory - 1;
-                }
-                break;
-            }
-            else if (c == 127)
-            {
-                // Backspace handling
-                if (inputIndex > 0)
-                {
-                    inputIndex--;
-                    input[inputIndex] = '\0';
-                    printf("\b \b"); // Move back, print space, move back
-                }
-            }
-            // Detect arrow keys
-            else if (c == '\033') // First byte of escape sequence
-            {
-                getchar();     // Skip '['
-                c = getchar(); // Get final byte
-                if (c == 'A')  // Up arrow key
-                {
-                    if (historyIndex >= 0 && historyIndex < countHistory)
-                    {
-                        strcpy(input, terminal.history[historyIndex]);
-                        printf("\r\033[K"); // Clear line
-                        printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer);
-                        printf(BOLD_BLUE "%s" RESET_COLOUR, current_cwd);
-                        printf(GREEN "$ " RESET_COLOUR "%s", input);
-                        inputIndex = strlen(input);
+        // continous input that verifies for each character, arrow keys, and tab
+        terminal.verifyCharacters(&terminal, input, &inputIndex, &historyIndex);
 
-                        if (historyIndex > 0)
-                        {
-                            historyIndex--;
-                        }
-                    }
-                }
-                else if (c == 'B') // Down arrow key
-                {
-                    if (historyIndex < countHistory - 1)
-                    {
-                        historyIndex++;
-                        strcpy(input, terminal.history[historyIndex]);
-                    }
-                    else if (historyIndex == countHistory - 1)
-                    {
-                        historyIndex++;
-                        memset(input, 0, sizeof(input));
-                    }
-                    else
-                    {
-                        historyIndex = countHistory - 1;
-                    }
-
-                    printf("\r\033[K"); // Clear the line
-                    printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer);
-                    printf(BOLD_BLUE "%s" RESET_COLOUR, current_cwd);
-                    printf(GREEN "$ " RESET_COLOUR "%s", input);
-                    inputIndex = strlen(input);
-                }
-            }
-            else if (c == '\t')
-            {
-
-                // Call the function to handle Tab press
-                char temp[1000];
-                strcpy(temp, input);
-                if (strlen(temp) > 3)
-                {
-                    // Use strcpy to copy the substring starting from the third character
-                    strcpy(temp, temp + 3);
-                    handle_tab_press(temp, input);
-                    inputIndex = strlen(input);
-                }
-            }
-            else if (c >= 32 && c < 127)
-            {
-                // Handle regular characters
-                input[inputIndex] = c;
-                inputIndex++;
-
-                putchar(c);
-            }
-        }
-
-        // fgets(input, sizeof(input), stdin);
-        // input[strcspn(input, "\n")] = 0;
-        // terminal.addHistory(&terminal, input);
-        // citirea datelor de la tastatura
-
-        // if (strstr(input, ">") != NULL)
-        // {
-        //     char *commandToken = strtok(input, ">");
-        //     char *fileToken = strtok(NULL, ">");
-        //     // printf("%s\n%s", commandToken, fileToken);
-        //     terminal.commandRedirection(commandToken, fileToken);
-        // }
-
+        // preprocess the data input
         char *token = strtok(input, " ");
+
+        // impartim datele de intrare in token-uri
         while (token != NULL)
         {
             strncpy(tokens[tokenCount], token, MAX_TOKEN_LEN);
@@ -346,6 +107,7 @@ int main()
         {
             terminal.commandRedirection(tokens[0], tokens[2]);
         }
+
         // verficarea cu fiecare comanda implementata
         else if (strcmp(tokens[0], "exit") == 0)
         {
@@ -359,7 +121,7 @@ int main()
             }
             else
             {
-                if (chdir(tokens[1]) != 0)
+                if (chdir(tokens[1]) != 0) // schimbam directorul de lucru curent
                 {
                     printf("Cannot go to: %s\n", tokens[1]);
                 }
@@ -369,12 +131,12 @@ int main()
         {
             for (int i = 0; i < countHistory; i++)
             {
-                printf("%d: %s\n", i, terminal.history[i]);
+                printf("%d: %s\n", i, terminal.history[i]); // afisam istoricul comenzilor
             }
         }
         else if (strcmp(tokens[0], "ls") == 0)
         {
-            const char *path = tokenCount > 1 ? tokens[1] : ".";
+            const char *path = tokenCount > 1 ? tokens[1] : "."; // obtinem calea din token-uri; daca nu exista, utilizam directorul curent
             terminal.listDirectory(path);
         }
         else if (strcmp(tokens[0], "clear") == 0)
@@ -415,7 +177,7 @@ int main()
             for (int i = 1; i < tokenCount; ++i)
             {
                 strncat(package_command, " ", sizeof(package_command) - strlen(package_command) - 1);
-                strncat(package_command, tokens[i], sizeof(package_command) - strlen(package_command) - 1);
+                strncat(package_command, tokens[i], sizeof(package_command) - strlen(package_command) - 1); // concatenam parametrii
             }
 
             // Apelam comanda
