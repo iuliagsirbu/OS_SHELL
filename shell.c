@@ -28,7 +28,7 @@ static int countHistory = 0;
 #include "user_details.h"
 #include "terminal.h"
 #include "verify_each_character.h"
-
+#include "logic.h"
 /* TERMIOS */
 void disable_raw_mode()
 {
@@ -82,6 +82,41 @@ int main()
         // continous input that verifies for each character, arrow keys, and tab
         terminal.verifyCharacters(&terminal,input, &inputIndex, &historyIndex);
         
+        if(containsLogicalAND(input) || containsLogicalOR(input)){
+            //creez un array de inturi in care v[0] daca e 1 este &&, daca e 0 este ||
+            //v[0] daca 1 isneamna ca face AND intre 1 si 2
+            int logic_gates[1000];
+            char copy_input[1000];
+            strcpy(copy_input, input);
+
+            char logictokens[MAX_TOKENS][MAX_TOKEN_LEN];
+
+            // Use strtok to split the string based on "&&" and "||"
+            char *token = strtok(copy_input, "&&||");
+
+            int tokenIndex = 0;
+
+            // Iterate through the tokens
+            while (token != NULL && tokenIndex < MAX_TOKENS) {
+                // Copy the token to the array
+                if(token[0] == ' '){
+                    strncpy(logictokens[tokenIndex], token + 1, MAX_TOKEN_LEN - 1);
+                }
+                else {
+                    strncpy(logictokens[tokenIndex], token, MAX_TOKEN_LEN - 1);
+                }
+                logictokens[tokenIndex][MAX_TOKEN_LEN - 1] = '\0';
+
+                // Increment the index and print the token
+                tokenIndex++;
+
+                // Get the next token
+                token = strtok(NULL, "&&||");
+            }
+            for (int i = 0; i < tokenIndex; i++) {
+                printf("%s\n", logictokens[i]);
+            }
+        }
         //preprocess the data input
         char *token = strtok(input, " ");
         while (token != NULL)
@@ -98,7 +133,7 @@ int main()
                 break;
             }
         }
-        
+
         // verficarea cu fiecare comanda implementata
         if (strcmp(tokens[0], "exit") == 0)
         {
