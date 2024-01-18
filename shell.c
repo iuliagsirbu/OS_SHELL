@@ -263,9 +263,15 @@ int main()
         {
             break;
         }
-        else if (strcmp(tokens[0], "cd") == 0)
+        else if (strcmp(tokens[0], "cd") == 0 )
         {
-            printf("So far so good...\n");
+            if(tokenCount != 2){
+                printf("Cd usage : cd <destination>\n");
+            }
+            else{
+                if(chdir(tokens[1]) != 0){printf("Cannot go to: %s\n", tokens[1]);}
+            }
+            
         }
         else if (strcmp(tokens[0], "history") == 0)
         {
