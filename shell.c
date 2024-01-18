@@ -29,7 +29,8 @@ static int countHistory = 0;
 #include "user_details.h"          // header pentru detalii despre utilizator
 #include "terminal.h"              // header pentru functionalitati specifice terminalului
 #include "verify_each_character.h" // header pentru verificarea fiecarui caracter
-#include "instruction.h"
+#include "instruction.h"           // header pentru apelarea unei comenzi
+#include "logic.h"                 // header pentru operatii logice
 /* TERMIOS */
 void disable_raw_mode()
 {
@@ -72,7 +73,8 @@ int main()
         .verifyCharacters = verify_each_character,
         .commandRedirection = command_redirection,
         .doAnInstruction = doAnInstruction,
-        .printUser = printUser
+        .printUser = printUser,
+        .doWithLogicInstruction = doWithLogicInstruction
     };
     enable_raw_mode();
     while (1)
@@ -85,10 +87,17 @@ int main()
         // continous input that verifies for each character, arrow keys, and tab
         terminal.verifyCharacters(&terminal, input, &inputIndex, &historyIndex);
 
-        int result = terminal.doAnInstruction(&terminal, input);
+        //sa aiba && sau || si sa fie cel putin 3 argumente
+        if((strstr(input, "&&") ||  strstr(input, "||")) && strchr(input, ' ') && strchr(strchr(input, ' ') + 1, ' ') && strchr(strchr(strchr(input, ' ') + 1, ' ') + 1, ' ')){
+           terminal.doWithLogicInstruction(&terminal, input);
+        }else{
+
+            int result = terminal.doAnInstruction(&terminal, input);
+            if(result == -1){break;}
+            if(result == 2){printf("cannot find the command\n");} //return de 2 e pus la sfarsitul functiei, daca nu a intrat pe nici un caz
+        }
         
-        if(result == -1){break;}
-        if(result == 1){printf("cannot find the command\n");} 
+        
     }
     disable_raw_mode();
     return 0;

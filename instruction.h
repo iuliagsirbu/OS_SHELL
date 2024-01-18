@@ -34,12 +34,14 @@ int doAnInstruction(struct Terminal* terminal, char* input){
             if (tokenCount != 2)
             {
                 printf("Cd usage : cd <destination>\n");
+                return 1;
             }
             else
             {
                 if (chdir(tokens[1]) != 0) // schimbam directorul de lucru curent
                 {
                     printf("Cannot go to: %s\n", tokens[1]);
+                    return 1;
                 }
             }
             return 0;
@@ -68,7 +70,7 @@ int doAnInstruction(struct Terminal* terminal, char* input){
             if (tokens[1] == NULL)
             {
                 printf("Usage: cat <filename>\n");
-                return 2; //nu s-a scris bine acea comanda
+                return 1;
             }
             char *fromFile = tokens[1];
             int sourceFile = open(fromFile, O_RDONLY);
@@ -105,5 +107,5 @@ int doAnInstruction(struct Terminal* terminal, char* input){
             system(package_command);
             return 0;
         }
-        return 1; //nu s-a gasit functia
+        return 2; //nu s-a gasit functia
 }
