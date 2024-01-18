@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
+#include <fcntl.h>
 
 /* CUSTOM HEADERS */
 #include "user_details.h"
@@ -33,6 +36,7 @@ typedef struct Terminal
     void (*addHistory)(struct Terminal *terminal, const char input[]);
     void (*listDirectory)(const char *path);
     void (*clearScreen)();
+    void (*commandRedirection)(char *command, char *file);
 } Terminal;
 
 /* FUNCTIONS */
@@ -104,25 +108,63 @@ int isPackageAccessible(const char *command)
     // Check if the command is accessible
     return (result == 0);
 }
-void handle_tab_press(char *partial_path, char* input) {
+void handle_tab_press(char *partial_path, char *input)
+{
 
     // Add your tab completion logic here
     DIR *dir;
     struct dirent *entry;
 
-    if ((dir = opendir(".")) != NULL) {
-        while ((entry = readdir(dir)) != NULL) {
-            if (strncmp(entry->d_name, partial_path, strlen(partial_path)) == 0) {
+    if ((dir = opendir(".")) != NULL)
+    {
+        while ((entry = readdir(dir)) != NULL)
+        {
+            if (strncmp(entry->d_name, partial_path, strlen(partial_path)) == 0)
+            {
                 char temp[1000] = "";
                 strcpy(temp, entry->d_name + strlen(partial_path));
                 strcat(input, temp);
-                printf("%s",temp);
-
+                printf("%s", temp);
             }
         }
         closedir(dir);
-    } else {
+    }
+    else
+    {
         perror("opendir");
+    }
+}
+
+void command_redirection(char *command, char *file)
+{
+    pid_t pid = fork();
+    if (pid == 0) // Child process
+    {
+        if (file != NULL)
+        {
+            int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd < 0)
+            {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            dup2(fd, STDOUT_FILENO);
+            close(fd);
+        }
+
+        char *argv[] = {command, NULL};
+        execvp(command, argv);
+        perror("execvp");
+        exit(EXIT_FAILURE);
+    }
+    else if (pid > 0) // Parent process
+    {
+        wait(NULL); // Waiting for the child...
+    }
+    else
+    {
+        perror("fork");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -158,7 +200,7 @@ int main()
 {
     char input[1000];
     int historyIndex = countHistory - 1;
-    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen};
+    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen, .commandRedirection = command_redirection};
     enable_raw_mode();
     while (1)
     {
@@ -248,15 +290,17 @@ int main()
                     inputIndex = strlen(input);
                 }
             }
-            else if (c == '\t') {
-                
+            else if (c == '\t')
+            {
+
                 // Call the function to handle Tab press
                 char temp[1000];
                 strcpy(temp, input);
-                if (strlen(temp) > 3) {
-                // Use strcpy to copy the substring starting from the third character
+                if (strlen(temp) > 3)
+                {
+                    // Use strcpy to copy the substring starting from the third character
                     strcpy(temp, temp + 3);
-                    handle_tab_press(temp , input);
+                    handle_tab_press(temp, input);
                     inputIndex = strlen(input);
                 }
             }
@@ -268,14 +312,21 @@ int main()
 
                 putchar(c);
             }
-            
         }
 
         // fgets(input, sizeof(input), stdin);
         // input[strcspn(input, "\n")] = 0;
         // terminal.addHistory(&terminal, input);
         // citirea datelor de la tastatura
-        
+
+        if (strstr(input, ">") != NULL)
+        {
+            char *commandToken = strtok(input, ">");
+            char *fileToken = strtok(NULL, ">");
+            // printf("%s\n%s", commandToken, fileToken);
+            terminal.commandRedirection(commandToken, fileToken);
+        }
+
         char *token = strtok(input, " ");
         while (token != NULL)
         {
@@ -291,20 +342,25 @@ int main()
                 break;
             }
         }
+
         // verficarea cu fiecare comanda implementata
         if (strcmp(tokens[0], "exit") == 0)
         {
             break;
         }
-        else if (strcmp(tokens[0], "cd") == 0 )
+        else if (strcmp(tokens[0], "cd") == 0)
         {
-            if(tokenCount != 2){
+            if (tokenCount != 2)
+            {
                 printf("Cd usage : cd <destination>\n");
             }
-            else{
-                if(chdir(tokens[1]) != 0){printf("Cannot go to: %s\n", tokens[1]);}
+            else
+            {
+                if (chdir(tokens[1]) != 0)
+                {
+                    printf("Cannot go to: %s\n", tokens[1]);
+                }
             }
-            
         }
         else if (strcmp(tokens[0], "history") == 0)
         {
@@ -321,6 +377,27 @@ int main()
         else if (strcmp(tokens[0], "clear") == 0)
         {
             terminal.clearScreen();
+        }
+        else if (strcmp(tokens[0], "cat") == 0)
+        {
+            if (tokens[1] == NULL)
+            {
+                printf("Usage: cat <filename>\n");
+                continue;
+            }
+            char *fromFile = tokens[1];
+            int sourceFile = open(fromFile, O_RDONLY);
+
+            struct stat st;
+            stat(fromFile, &st);
+
+            int sourceSize = st.st_size;
+            char *buffer = malloc(sourceSize);
+            int bytesRead = read(sourceFile, buffer, sourceSize);
+            write(STDOUT_FILENO, buffer, bytesRead);
+
+            free(buffer);
+            close(sourceFile);
         }
         // asta trb pusa la sfarsit doarece poate accesa si touch, mkdir, cam orice comanda linux
         // deci asta este doar daca am ratat noi alte comenzi, altfel merge tot
