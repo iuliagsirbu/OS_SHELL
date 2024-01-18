@@ -319,13 +319,13 @@ int main()
         // terminal.addHistory(&terminal, input);
         // citirea datelor de la tastatura
 
-        if (strstr(input, ">") != NULL)
-        {
-            char *commandToken = strtok(input, ">");
-            char *fileToken = strtok(NULL, ">");
-            // printf("%s\n%s", commandToken, fileToken);
-            terminal.commandRedirection(commandToken, fileToken);
-        }
+        // if (strstr(input, ">") != NULL)
+        // {
+        //     char *commandToken = strtok(input, ">");
+        //     char *fileToken = strtok(NULL, ">");
+        //     // printf("%s\n%s", commandToken, fileToken);
+        //     terminal.commandRedirection(commandToken, fileToken);
+        // }
 
         char *token = strtok(input, " ");
         while (token != NULL)
@@ -342,9 +342,12 @@ int main()
                 break;
             }
         }
-
+        if (strcmp(tokens[1], ">") == 0)
+        {
+            terminal.commandRedirection(tokens[0], tokens[2]);
+        }
         // verficarea cu fiecare comanda implementata
-        if (strcmp(tokens[0], "exit") == 0)
+        else if (strcmp(tokens[0], "exit") == 0)
         {
             break;
         }
