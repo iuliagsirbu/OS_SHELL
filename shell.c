@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <termios.h>
 
 /* CUSTOM HEADERS */
 #include "user_details.h"
@@ -20,9 +21,12 @@
 #define GREEN "\033[32m"
 #define RESET_COLOUR "\033[0m"
 #define RESET_BCKGROUND "\e[0m"
+#define GREEN_UNDERLINE "\e[4;32m"
 
 static int countHistory = 0;
 
+/* STRUCTS */
+struct termios orig_termios; /* holds the original terminal settings */
 typedef struct Terminal
 {
     char history[MAX_TOKENS][MAX_TOKEN_LEN];
@@ -31,6 +35,9 @@ typedef struct Terminal
     void (*clearScreen)();
 } Terminal;
 
+/* FUNCTIONS */
+
+/* TERMINAL */
 void add_to_history(struct Terminal *terminal, const char input[])
 {
     if (countHistory < MAX_TOKENS)
@@ -59,7 +66,7 @@ void list_directory(const char *path)
         // primeste cv de tip mode_t (vezi lab 2)
         if (S_ISDIR(statbuf.st_mode))
         {
-            printf(GREEN_BCKGROUND "%s\n" RESET_BCKGROUND, entry->d_name);
+            printf(GREEN_UNDERLINE "%s\n" RESET_BCKGROUND, entry->d_name);
         }
         else
         {
@@ -98,10 +105,40 @@ int isPackageAccessible(const char *command)
     return (result == 0);
 }
 
+/* TERMIOS */
+void disable_raw_mode()
+{
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+    /*
+    set the terminal attributes:
+        - file descriptor for standard input
+        - discards any unread input before applying the new settings
+        - pointer to the original terminal settings
+    */
+}
+
+void enable_raw_mode()
+{
+    tcgetattr(STDIN_FILENO, &orig_termios);
+    atexit(disable_raw_mode);
+
+    struct termios raw = orig_termios;
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
+    /*
+    raw struct modifies certain flags:
+        - disables echoing of input characters
+        - enables non-canonical mode (input is processed immediately)
+        - disables signal generation
+    */
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw); /* enables raw mode */
+}
+
 int main()
 {
     char input[1000];
+    int historyIndex = countHistory - 1;
     Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen};
+    enable_raw_mode();
 
     while (1)
     {
@@ -116,12 +153,96 @@ int main()
 
         printf(GREEN "$ " RESET_COLOUR);
 
-        fgets(input, sizeof(input), stdin);
+        int inputIndex = 0;
+        memset(input, 0, sizeof(input)); // Clear the buffer
+        // continous input
+        while (1)
+        {
+            int c = getchar();
 
-        input[strcspn(input, "\n")] = 0;
+            // Detect Enter key or end of file
+            if (c == '\n' || c == EOF)
+            {
+                input[inputIndex] = '\0';
+                printf("\n");
+                if (inputIndex > 0)
+                {
+                    terminal.addHistory(&terminal, input);
+                    historyIndex = countHistory - 1;
+                }
+                break;
+            }
+            else if (c == 127)
+            {
+                // Backspace handling
+                if (inputIndex > 0)
+                {
+                    inputIndex--;
+                    input[inputIndex] = '\0';
+                    printf("\b \b"); // Move back, print space, move back
+                }
+            }
+            // Detect arrow keys
+            else if (c == '\033') // First byte of escape sequence
+            {
+                getchar();     // Skip '['
+                c = getchar(); // Get final byte
+                if (c == 'A')  // Up arrow key
+                {
+                    if (historyIndex >= 0 && historyIndex < countHistory)
+                    {
+                        strcpy(input, terminal.history[historyIndex]);
+                        printf("\r\033[K"); // Clear line
+                        printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer);
+                        printf(BOLD_BLUE "%s" RESET_COLOUR, current_cwd);
+                        printf(GREEN "$ " RESET_COLOUR "%s", input);
+                        inputIndex = strlen(input);
 
-        terminal.addHistory(&terminal, input);
+                        if (historyIndex > 0)
+                        {
+                            historyIndex--;
+                        }
+                    }
+                }
+                else if (c == 'B') // Down arrow key
+                {
+                    if (historyIndex < countHistory - 1)
+                    {
+                        historyIndex++;
+                        strcpy(input, terminal.history[historyIndex]);
+                    }
+                    else if (historyIndex == countHistory - 1)
+                    {
+                        historyIndex++;
+                        memset(input, 0, sizeof(input));
+                    }
+                    else
+                    {
+                        historyIndex = countHistory - 1;
+                    }
+
+                    printf("\r\033[K"); // Clear the line
+                    printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer);
+                    printf(BOLD_BLUE "%s" RESET_COLOUR, current_cwd);
+                    printf(GREEN "$ " RESET_COLOUR "%s", input);
+                    inputIndex = strlen(input);
+                }
+            }
+            else if (c >= 32 && c < 127)
+            {
+                // Handle regular characters
+                input[inputIndex] = c;
+                inputIndex++;
+
+                putchar(c);
+            }
+        }
+
+        // fgets(input, sizeof(input), stdin);
+        // input[strcspn(input, "\n")] = 0;
+        // terminal.addHistory(&terminal, input);
         // citirea datelor de la tastatura
+
         char *token = strtok(input, " ");
         while (token != NULL)
         {
@@ -182,5 +303,6 @@ int main()
             system(package_command);
         }
     }
+    disable_raw_mode();
     return 0;
 }
