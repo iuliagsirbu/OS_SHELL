@@ -31,22 +31,23 @@ void verify_each_character(struct Terminal *terminal,char* input,int* inputIndex
         // Detect Enter key or end of file
         if (c == '\n' || c == EOF)
         {
-            input[*inputIndex] = '\0';
+            input[(*inputIndex)] = '\0';
             printf("\n");
-            if (*inputIndex > 0)
+            if ((*inputIndex) > 0)
             {
                 terminal->addHistory(terminal, input);
-                *historyIndex = countHistory - 1;
+                (*historyIndex) = countHistory - 1;
             }
             break;
         }
         else if (c == 127)
         {
             // Backspace handling
-            if (*inputIndex > 0)
+            if ((*inputIndex) > 0)
             {
-                *inputIndex--;
-                input[*inputIndex] = '\0';
+                
+                (*inputIndex)--;
+                input[(*inputIndex)] = '\0';
                 printf("\b \b"); // Move back, print space, move back
             }
         }
@@ -57,43 +58,43 @@ void verify_each_character(struct Terminal *terminal,char* input,int* inputIndex
             c = getchar(); // Get final byte
             if (c == 'A')  // Up arrow key
             {
-                if (*historyIndex >= 0 && *historyIndex < countHistory)
+                if ((*historyIndex) >= 0 && (*historyIndex) < countHistory)
                 {
-                    strcpy(input, terminal->history[*historyIndex]);
+                    strcpy(input, terminal->history[(*historyIndex)]);
                     printf("\r\033[K"); // Clear line
                     printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer);
                     printf(BOLD_BLUE "%s" RESET_COLOUR, current_cwd);
                     printf(GREEN "$ " RESET_COLOUR "%s", input);
-                    *inputIndex = strlen(input);
+                    (*inputIndex) = strlen(input);
 
-                    if (*historyIndex > 0)
+                    if ((*historyIndex) > 0)
                     {
-                        *historyIndex--;
+                        (*historyIndex)--;
                     }
                 }
             }
             else if (c == 'B') // Down arrow key
             {
-                if (*historyIndex < countHistory - 1)
+                if ((*historyIndex) < countHistory - 1)
                 {
-                    *historyIndex++;
-                    strcpy(input, terminal->history[*historyIndex]);
+                    (*historyIndex)++;
+                    strcpy(input, terminal->history[(*historyIndex)]);
                 }
-                else if (*historyIndex == countHistory - 1)
+                else if ((*historyIndex) == countHistory - 1)
                 {
-                    *historyIndex++;
+                    (*historyIndex)++;
                     memset(input, 0, sizeof(input));
                 }
                 else
                 {
-                    *historyIndex = countHistory - 1;
+                    (*historyIndex) = countHistory - 1;
                 }
 
                 printf("\r\033[K"); // Clear the line
                 printf(BOLD_GREEN "%s@%s:" RESET_COLOUR, user, computer);
                 printf(BOLD_BLUE "%s" RESET_COLOUR, current_cwd);
                 printf(GREEN "$ " RESET_COLOUR "%s", input);
-                *inputIndex = strlen(input);
+                (*inputIndex) = strlen(input);
             }
         }
         else if (c == '\t') {
@@ -105,15 +106,15 @@ void verify_each_character(struct Terminal *terminal,char* input,int* inputIndex
                 // Use strcpy to copy the substring starting from the third character
                     strcpy(temp, temp + 3);
                     handle_tab_press(temp , input);
-                    *inputIndex = strlen(input);
+                    (*inputIndex) = strlen(input);
                 
                 }
         }
         else if (c >= 32 && c < 127)
         {
             // Handle regular characters
-            input[*inputIndex] = c;
-            *inputIndex++;
+            input[(*inputIndex)] = c;
+            (*inputIndex)++;
 
             putchar(c);
         }

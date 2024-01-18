@@ -36,7 +36,8 @@ typedef struct Terminal
     void (*clearScreen)();
     void (*verifyCharacters)(struct Terminal *terminal,char* input,int* inputIndex, int* historyIndex );
 } Terminal;
-#include "verify_each_character.h"
+
+
 /* FUNCTIONS */
 
 /* TERMINAL */
@@ -135,7 +136,7 @@ void enable_raw_mode()
     */
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw); /* enables raw mode */
 }
-
+#include "verify_each_character.h"
 int main()
 {
     char input[1000];
@@ -157,14 +158,9 @@ int main()
 
         int inputIndex = 0;
         memset(input, 0, sizeof(input)); // Clear the buffer
+
         // continous input
-        
-        verify_each_character(&terminal,input, &inputIndex, &historyIndex);
-        
-        // fgets(input, sizeof(input), stdin);
-        // input[strcspn(input, "\n")] = 0;
-        // terminal.addHistory(&terminal, input);
-        // citirea datelor de la tastatura
+        terminal.verifyCharacters(&terminal,input, &inputIndex, &historyIndex);
         
         char *token = strtok(input, " ");
         while (token != NULL)
