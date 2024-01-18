@@ -104,6 +104,26 @@ int isPackageAccessible(const char *command)
     // Check if the command is accessible
     return (result == 0);
 }
+void handle_tab_press(char *partial_path, char* input) {
+
+    // Add your tab completion logic here
+    DIR *dir;
+    struct dirent *entry;
+
+    if ((dir = opendir(".")) != NULL) {
+        while ((entry = readdir(dir)) != NULL) {
+            if (strncmp(entry->d_name, partial_path, strlen(partial_path)) == 0) {
+                char temp[1000] = "cd ";
+                strcat(temp, entry->d_name);
+                strcpy(input,temp);
+
+            }
+        }
+        closedir(dir);
+    } else {
+        perror("opendir");
+    }
+}
 
 /* TERMIOS */
 void disable_raw_mode()
@@ -139,7 +159,6 @@ int main()
     int historyIndex = countHistory - 1;
     Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen};
     enable_raw_mode();
-
     while (1)
     {
         char tokens[MAX_TOKENS][MAX_TOKEN_LEN];
@@ -235,6 +254,18 @@ int main()
                 inputIndex++;
 
                 putchar(c);
+            }
+            else if (c == '\t') {
+                
+                // Call the function to handle Tab press
+                char temp[1000];
+                strcpy(temp, input);
+                if (strlen(temp) > 3) {
+                // Use strcpy to copy the substring starting from the third character
+                    strcpy(temp, temp + 3);
+                    handle_tab_press(temp , input);
+                    printf("%s", input);
+                }
             }
         }
 
