@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
+#include <fcntl.h>
 
 /* CONSTANTS */
 #define MAX_TOKENS 100
@@ -64,7 +65,7 @@ int main()
     int historyIndex = countHistory - 1;
 
     // structura pentru functionalitatile specifice terminalului (istoric, listare directoare, curatare ecran, verificare fiecare caracter)
-    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen, .verifyCharacters = verify_each_character};
+    Terminal terminal = {.addHistory = add_to_history, .listDirectory = list_directory, .clearScreen = clear_screen, .verifyCharacters = verify_each_character, .commandRedirection = command_redirection};
     enable_raw_mode();
     while (1)
     {
