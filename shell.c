@@ -113,9 +113,10 @@ void handle_tab_press(char *partial_path, char* input) {
     if ((dir = opendir(".")) != NULL) {
         while ((entry = readdir(dir)) != NULL) {
             if (strncmp(entry->d_name, partial_path, strlen(partial_path)) == 0) {
-                char temp[1000] = "cd ";
-                strcat(temp, entry->d_name);
-                strcpy(input,temp);
+                char temp[1000] = "";
+                strcpy(temp, entry->d_name + strlen(partial_path));
+                strcat(input, temp);
+                printf("%s",temp);
 
             }
         }
@@ -247,14 +248,6 @@ int main()
                     inputIndex = strlen(input);
                 }
             }
-            else if (c >= 32 && c < 127)
-            {
-                // Handle regular characters
-                input[inputIndex] = c;
-                inputIndex++;
-
-                putchar(c);
-            }
             else if (c == '\t') {
                 
                 // Call the function to handle Tab press
@@ -264,16 +257,25 @@ int main()
                 // Use strcpy to copy the substring starting from the third character
                     strcpy(temp, temp + 3);
                     handle_tab_press(temp , input);
-                    printf("%s", input);
+                    inputIndex = strlen(input);
                 }
             }
+            else if (c >= 32 && c < 127)
+            {
+                // Handle regular characters
+                input[inputIndex] = c;
+                inputIndex++;
+
+                putchar(c);
+            }
+            
         }
 
         // fgets(input, sizeof(input), stdin);
         // input[strcspn(input, "\n")] = 0;
         // terminal.addHistory(&terminal, input);
         // citirea datelor de la tastatura
-
+        
         char *token = strtok(input, " ");
         while (token != NULL)
         {
