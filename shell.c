@@ -82,19 +82,36 @@ int main()
         // continous input that verifies for each character, arrow keys, and tab
         terminal.verifyCharacters(&terminal,input, &inputIndex, &historyIndex);
         
-        if(containsLogicalAND(input) || containsLogicalOR(input)){
-            //creez un array de inturi in care v[0] daca e 1 este &&, daca e 0 este ||
+        if(strstr(input, "&&") ||  strstr(input, "||")){
+            //creez un array de inturi in care v[0] daca e 1 este &&, daca e 2 este ||
             //v[0] daca 1 isneamna ca face AND intre 1 si 2
             int logic_gates[1000];
+            char copy_for_gates[1000];
+            strcpy(copy_for_gates, input);
+            int tokenIndex = 0;
+
+            char *token = strtok(copy_for_gates, " ");
+            while(token != NULL){
+                if(strcmp(token, "&&") == 0){
+                    logic_gates[tokenIndex] = 1;
+                    tokenIndex ++;
+                }
+                if(strcmp(token, "||") == 0){
+                    logic_gates[tokenIndex] = 2;
+                    tokenIndex ++;
+                }
+                token = strtok(NULL, " ");
+                
+            }
             char copy_input[1000];
             strcpy(copy_input, input);
 
             char logictokens[MAX_TOKENS][MAX_TOKEN_LEN];
 
             // Use strtok to split the string based on "&&" and "||"
-            char *token = strtok(copy_input, "&&||");
+            token = strtok(copy_input, "&&||");
 
-            int tokenIndex = 0;
+            tokenIndex = 0;
 
             // Iterate through the tokens
             while (token != NULL && tokenIndex < MAX_TOKENS) {
@@ -113,9 +130,16 @@ int main()
                 // Get the next token
                 token = strtok(NULL, "&&||");
             }
-            for (int i = 0; i < tokenIndex; i++) {
-                printf("%s\n", logictokens[i]);
+            int old_status = 1;
+            //aici folosim o functie care face o instructiune de la 0. 
+            //Returneaza 0 daca a decurs bine, returneaza 1 daca nu.
+            old_status = do_an_instruction();
+            for (int i = 1; i < tokenIndex; i++) {
+                
+                //procesam fiecare comanda in parte
             }
+
+            
         }
         //preprocess the data input
         char *token = strtok(input, " ");
